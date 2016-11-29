@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Title</title>
+	<style>
+		canvas {
+			border:	1px solid #d3d3d3;
+			background-color: #f1f1f1;
+			transform: rotate(-90deg);
+			margin-top: 100px;
+		}
+	</style>
+</head>
+<body onload="startGame()">
+	<canvas id="canvas"></canvas>
+	<script>
+		'use strict';
+
+		class GameArea {
+			constructor(canvas) {
+				this.canvas = canvas;
+			}
+
+			start() {
+				this.canvas.width = 480;
+				this.canvas.height = 270;
+				this.context = this.canvas.getContext('2d');
+				this.frameNo = 0;
+				this.interval = setInterval(updateGameArea, 7);
+			}
+
+			clear() {
+				this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+			}
+		}
+
+		class Component {
+			constructor(width, height, color, x, y, type) {
+				this.width = width;
+				this.height = height;
+				this.color = color;
+				this.x = x;
+				this.y = y;
+				this.type = type;
+				this.score = 0;
+				this.speedX = 0;
+				this.speedY = 0;
+				this.gravity = 0;
+				this.gravitySpeed = 0;
+			}
+
+			update() {
+				let ctx = gameArea.context;
+
+				if (this.type == "text") {
+					ctx.font = this.width + " " + this.height;
+					ctx.fillStyle = this.color;
+					ctx.fillText(this.text, this.x, this.y);
+				} else {
+					ctx.fillStyle = this.color;
+					ctx.fillRect(this.x, this.y, this.width, this.height);
+				}
+			}
+
+			hitBottom() {
+				let rockbottom = gameArea.canvas.height - this.height;
+				if (this.y > rockbottom) {
+					this.y = rockbottom;
+					this.gravitySpeed = 0;
+				}
+			}
+
+			newPos() {
+				this.gravitySpeed += this.gravity;
+				this.gravitySpeed += this.gravity;
+				this.x += this.speedX;
+				this.y += this.speedY + this.gravitySpeed;
+				this.hitBottom();
+			}
+
+			crashWith(otherObj) {
+				let left = this.x,
+					right = this.x + (this.width),
+					top = this.y,
+					bottom = this.y + (this.height),
+					otherLeft = otherObj.x,
+					otherRight = otherObj.x + (otherObj.width),
+					otherTop = otherObj.y,
+					otherBottom = otherObj.y + (otherObj.height),
+					crash = true;
+
+				if ( bottom < otherTop ||
+					 top > otherBottom ||
+					 right < otherLeft ||
+					 left > otherRight )
+					crash = false;
+
+				return crash;
+			}
+		}
+
+		let gamePiece = new Component(15, 15, "red", 10, 120),
+			score = new Component("30px", "Consolas", "transparent", 280, 40, "text"),
+			canvas = document.getElementById('canvas'),
+			gameArea = new GameArea(canvas),
+			osbtacles = [];
+
+		function startGame() {
+			gamePiece.gravity = 0;
+			gameArea.start();
+		}
+
+		function updateGameArea() {
+			let x, height, gap, minHeight, maxHeight, minGap, maxGap;
+			for (let i = 0; i < osbtacles.length; i += 1) {
+				if (gamePiece.crashWith(osbtacles[i])) {
+					return;
+				}
+			}
+			gameArea.clear();
+			gameArea.frameNo += 1;
+			if (gameArea.frameNo == 1 || everyInterval(150)) {
+				x = gameArea.canvas.width;
+				minHeight = 20;
+				maxHeight = 200;
+				height = Math.floor(Math.random()*(maxHeight-minHeight+1)+minHeight);
+				minGap = 50;
+				maxGap = 20;
+				gap = Math.floor(Math.random()*(maxGap-minGap+1)+minGap);
+				osbtacles.push(new Component(10, height, "green", x, 0));
+				osbtacles.push(new Component(10, x - height - gap, "green", x, height + gap));
+			}
+			for (let i = 0; i < osbtacles.length; i += 1) {
+				osbtacles[i].x += -1;
+				osbtacles[i].update();
+			}
+			score.text = "SCORE: " + gameArea.frameNo;
+			score.update();
+			gamePiece.newPos();
+			gamePiece.update();
+		}
+
+		function everyInterval(n) {
+			return (gameArea.frameNo / n) % 1 == 0;
+		}
+
+		function accelerate(n) {
+			gamePiece.gravity = n;
+		}
+
+		document.onkeydown = function(e) {
+			e = e || window.event;
+
+//			if (e.keyCode == '38') {
+//				// up arrow
+//				gamePiece.gravity = 0;
+//				gamePiece.gravity += 0.05;
+//			}
+//			else if (e.keyCode == '40') {
+//				// down arrow
+//				gamePiece.gravity = 0;
+//				gamePiece.gravity -= 0.05;
+//			}
+			if (e.keyCode == '37') {
+				// left arrow
+				gamePiece.gravity = 0;
+				gamePiece.gravity -= 0.05;
+			}
+			if (e.keyCode == '39') {
+				// right arrow
+				gamePiece.gravity = 0;
+				gamePiece.gravity += 0.05;
+			}
+		};
+
+		document.onkeyup = function() {
+			gamePiece.gravitySpeed = 0;
+			gamePiece.gravity = 0;
+		};
+
+	</script>
+</body>
+</html>
